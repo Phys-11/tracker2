@@ -38,7 +38,12 @@ const $ = id => document.getElementById(id);
 const video = $("video"), overlay = $("overlay"), ctx = overlay.getContext("2d");
 let url = null, ready = false, busy = false, phase = 1, calibration = [], origin = null, points = [], completed = false, completionReason = "", seekSequence = 0, cancelSeek = null;
 let displayedMediaTime = null;
-const actualVideoTime = () => Number.isFinite(displayedMediaTime) ? displayedMediaTime : video.currentTime;
+const actualVideoTime = () => {
+  const tolerance=0.6/Number($("fps").value);
+  return Number.isFinite(displayedMediaTime) &&
+    Math.abs(displayedMediaTime-video.currentTime)<=tolerance
+    ? displayedMediaTime : video.currentTime;
+};
 if ("requestVideoFrameCallback" in HTMLVideoElement.prototype) {
   const captureDisplayedFrame = (now, metadata) => {
     displayedMediaTime = metadata.mediaTime;
@@ -101,7 +106,12 @@ async function seekTo(target) {
 }
 async function step(direction) {
   if (!ready || busy) return;
-  const target=actualVideoTime()+direction/fps();
+  const frameDuration=1/fps();
+  const epsilon=Math.min(0.001,frameDuration*0.05);
+  const currentFrameTime=actualVideoTime();
+  const target=direction>0
+    ? currentFrameTime+frameDuration+epsilon
+    : currentFrameTime-epsilon;
   if (target>=video.duration) { notice("Fin del video. Puedes finalizar el rastreo."); return; }
   await seekTo(Math.max(0,target));
 }
@@ -373,7 +383,8 @@ render();
       status.textContent = " · selección manual";
       message.textContent = "El navegador no pudo medir los FPS. Selecciona manualmente la tasa del video.";
     }
-    try { videoElement.currentTime = 0; } catch {}
+    displayedMediaTime=null;
+    await seekTo(0);
     selector.disabled = false;
   }
   videoElement.addEventListener("loadeddata", detectFrameRate);
