@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tiro vertical · Laboratorio de videoanálisis</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1220;--panel:#131e30;--border:#29364d;--text:#edf2fa;--muted:#9fadc4;--accent:#63e0b3;--blue:#77b7ff;--yellow:#ffd166}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,sans-serif}header,main,footer{max-width:1450px;margin:auto;padding:22px}header{display:flex;justify-content:space-between;gap:20px;align-items:center}h1{margin:0;font-size:clamp(22px,3vw,32px);letter-spacing:-.8px}h2{font-size:17px;margin:0 0 12px}p{margin:6px 0}.muted,small{color:var(--muted)}.badge{color:var(--accent);border:1px solid #326852;border-radius:30px;padding:6px 12px;white-space:nowrap;font-size:12px}main{padding-top:0}.layout{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(330px,1fr);gap:18px}.stack{display:grid;gap:18px;align-content:start;min-width:0}.card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px;min-width:0}.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.spread{justify-content:space-between}
+button,.file-button{border:1px solid var(--border);border-radius:9px;padding:10px 13px;background:#223049;color:var(--text);cursor:pointer;font:inherit;font-size:13px}button:hover:not(:disabled),.file-button:hover{background:#304260}button.primary,.file-button{background:var(--accent);color:#092c20;font-weight:700}button.primary:hover:not(:disabled),.file-button:hover{background:#8cedc9}button:disabled{opacity:.4;cursor:not-allowed}button:focus-visible,input:focus-visible,select:focus-visible,.stage:focus-visible{outline:2px solid var(--blue);outline-offset:3px}input,select{background:#0b1525;color:var(--text);border:1px solid var(--border);border-radius:7px;padding:8px;font:inherit}input[type=number]{width:88px}input[type=range]{width:100%;padding:0;accent-color:var(--accent)}input[type=file]{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}.file-button:focus-within{outline:2px solid var(--blue);outline-offset:3px}.filename{overflow-wrap:anywhere;font-size:12px}.stage{position:relative;width:100%;margin:16px 0 10px;background:#050a12;border-radius:10px;overflow:hidden;aspect-ratio:16/9}video{display:block;width:100%;height:100%;object-fit:contain}#overlay{position:absolute;inset:0;width:100%;height:100%;touch-action:manipulation}.placeholder{position:absolute;inset:0;display:grid;place-content:center;text-align:center;padding:24px;color:var(--muted);pointer-events:none}.placeholder strong{font-size:36px;color:var(--accent);font-weight:400}.time{font-variant-numeric:tabular-nums;font-size:13px;color:var(--muted)}.hint{background:#102b29;border-left:3px solid var(--accent);padding:12px;border-radius:6px;margin:14px 0;font-size:14px}#notice{color:var(--yellow);min-height:22px;font-size:13px;margin-top:8px}.steps{display:grid;gap:8px}.step{padding:10px 12px;border:1px solid var(--border);border-radius:10px;display:flex;gap:12px;align-items:center;color:var(--muted)}.step span{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#26334a;flex-shrink:0;font-weight:700}.step.active{border-color:var(--accent);color:var(--text);background:#15332f}.step.active span{background:var(--accent);color:#092c20}.step.done span{color:var(--accent)}.controls{margin-top:16px}.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.metric{background:#0d1829;padding:12px 8px;border-radius:10px}.metric small{display:block;font-size:11px}.metric strong{font-size:21px;font-variant-numeric:tabular-nums}.metric em{font-size:11px;font-style:normal;color:var(--muted)}.plot{width:100%;height:205px;display:block}.plot-title{display:flex;justify-content:space-between;margin-top:15px;font-size:13px}.table-wrap{max-height:300px;overflow:auto;margin-top:12px;border-radius:8px}table{border-collapse:collapse;width:100%;font-size:13px;text-align:right}th,td{padding:10px;border-bottom:1px solid var(--border);white-space:nowrap}th{position:sticky;top:0;background:#1c2940;color:var(--muted);font-weight:500}tr.current{background:#16372f}.help{font-size:12px;color:var(--muted)}details{margin-top:16px}summary{cursor:pointer}footer{padding-top:0;font-size:12px;color:var(--muted)}[hidden]{display:none!important}@media(max-width:940px){.layout{grid-template-columns:1fr}header{align-items:flex-start}header .badge{display:none}}@media(max-width:480px){header,main,footer{padding-left:12px;padding-right:12px}.card{padding:12px}button{padding:9px 10px}}
+</style>
+</head>
+<body>
+<header><div><h1>Tiro vertical <span style="color:var(--accent)">↗</span></h1><p class="muted">Laboratorio de videoanálisis · de la imagen al movimiento</p></div><span class="badge">Local y sin conexión</span></header>
+<main class="layout">
+<section class="stack">
+<div class="card">
+<div class="row spread"><label class="file-button">Cargar video<input id="file" type="file" accept="video/mp4,video/webm,.mp4,.webm"></label><label class="time">FPS <select id="fps" aria-label="Fotogramas por segundo"><option value="30">30 fps</option><option value="60">60 fps</option><option value="25">25 fps</option><option value="24">24 fps</option><option value="29.97">29.97 fps</option><option value="59.94">59.94 fps</option></select></label></div>
+<p id="filename" class="filename muted">MP4 o WebM · el video permanece en tu dispositivo</p>
+<div id="stage" class="stage" tabindex="0" aria-label="Video: flechas izquierda y derecha para navegar"><video id="video" preload="auto" playsinline muted></video><canvas id="overlay" aria-label="Haz clic para calibrar o marcar el centro de la pelota"></canvas><div id="placeholder" class="placeholder"><strong>◎</strong><p>Carga un video para comenzar</p><small>Procura que la regla y la pelota se vean con claridad.</small></div></div>
+<input id="scrub" type="range" min="0" max="1" step="0.001" value="0" disabled aria-label="Posición en el video">
+<div class="row spread" style="margin-top:10px"><div class="row"><button id="back" disabled title="Retroceder un fotograma">← 1 cuadro</button><button id="play" disabled>Reproducir</button><button id="next" disabled title="Avanzar un fotograma">1 cuadro →</button></div><span id="clock" class="time">Video 0.000 s · cuadro 0</span></div>
+<div id="hint" class="hint">Carga un video para iniciar la calibración.</div><div id="notice" role="status" aria-live="polite"></div><p class="help">Atajos con el video seleccionado: ← / → para avanzar un cuadro y espacio para reproducir o pausar.</p>
+</div>
+<div class="card"><div class="row spread"><h2 style="margin:0">Datos experimentales</h2><button id="export" disabled>Descargar CSV</button></div><p id="count" class="help">0 puntos registrados</p><div class="table-wrap"><table><thead><tr><th>Fotograma</th><th>t (s)</th><th>y (m)</th><th>vᵧ (m/s)</th></tr></thead><tbody id="tbody"></tbody></table></div><p class="help">El fotograma se cuenta desde el inicio del video, comenzando en 0. El tiempo experimental comienza en el despegue.</p></div>
+</section>
+<aside class="stack"><div class="card"><h2>Tu experimento</h2><div class="steps"><div id="step1" class="step active"><span>1</span><div>Calibrar escala y eje Y</div></div><div id="step2" class="step"><span>2</span><div>Marcar el despegue</div></div><div id="step3" class="step"><span>3</span><div>Rastrear la pelota</div></div></div>
+<div class="controls"><label for="length">Longitud de la referencia</label><div class="row" style="margin-top:6px"><input id="length" type="number" min="0.001" step="0.1" value="0.5"><span class="muted">m</span><button id="half">0.5 m</button><button id="one">1.0 m</button></div><p id="scaleInfo" class="help">Marca primero la base y luego el extremo superior.</p></div>
+<div class="row" style="margin-top:14px"><button id="undo" disabled>Deshacer punto</button><button id="finish" class="primary" disabled>Finalizar rastreo</button><button id="reset" disabled>Reiniciar análisis</button></div>
+<details class="help"><summary>Cómo se calculan los datos</summary><p>El vector desde la base A hasta el extremo superior B define +Y. Para una marca P y el origen O:</p><p>y = (P − O) · (B − A) × L / |B − A|²</p><p>Así se compensan inclinaciones en el plano de la imagen. La cámara debe permanecer fija; la perspectiva y el movimiento fuera de ese plano introducen errores.</p><p>La velocidad usa diferencias centrales entre las marcas vecinas. En los extremos se usan diferencias hacia adelante o atrás. Con un solo punto, la velocidad no está definida.</p><p>Las velocidades pueden actualizarse al agregar puntos. La derivación amplifica los errores de marcado.</p></details></div>
+<div class="card"><h2>Mediciones</h2><p id="metricContext" class="help">Selecciona el origen para comenzar.</p><div class="metrics" style="margin-top:10px"><div class="metric"><small>TIEMPO ACTUAL</small><strong id="mt">—</strong> <em>s</em></div><div class="metric"><small>POSICIÓN</small><strong id="my">—</strong> <em>m</em></div><div class="metric"><small>VELOCIDAD</small><strong id="mv">—</strong> <em>m/s</em></div></div><p id="last" class="help" style="margin-top:10px">Todavía no hay marcas.</p>
+<div class="plot-title"><span>Posición · y(t)</span><span style="color:var(--accent)">m</span></div><canvas id="positionChart" class="plot" role="img" aria-label="Gráfica de posición vertical en función del tiempo"></canvas><div class="plot-title"><span>Velocidad · vᵧ(t)</span><span style="color:var(--blue)">m/s</span></div><canvas id="velocityChart" class="plot" role="img" aria-label="Gráfica de velocidad vertical en función del tiempo"></canvas><p id="fit" class="help">La pendiente de vᵧ(t) permite estimar la aceleración.</p></div></aside>
+</main>
+<footer>El avance usa Δt = 1 / FPS. Selecciona la tasa de grabación antes de marcar el origen. El navegador no garantiza identificación exacta de fotogramas, especialmente con videos de tasa variable.</footer>
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const video = $("video"), overlay = $("overlay"), ctx = overlay.getContext("2d");
+let url = null, ready = false, busy = false, phase = 1, calibration = [], origin = null, points = [], completed = false, completionReason = "", seekSequence = 0, cancelSeek = null;
+const fps = () => Number($("fps").value);
+const frame = t => Math.round(t * fps());
+const fmt = (n, digits = 3) => Number.isFinite(n) ? n.toFixed(digits) : "—";
+const notice = text => { $("notice").textContent = text; };
+const lengthValid = () => Number.isFinite(Number($("length").value)) && Number($("length").value) > 0;
+function geometry() {
+  if (calibration.length !== 2 || !lengthValid()) return null;
+  const [a,b] = calibration, dx = b.x-a.x, dy = b.y-a.y, distance = Math.hypot(dx,dy);
+  return {dx,dy,distance,length:Number($("length").value)};
+}
+function heightAt(p) {
+  const g = geometry();
+  return ((p.x-origin.x)*g.dx+(p.y-origin.y)*g.dy)*g.length/(g.distance*g.distance);
+}
+function calculateVelocities() {
+  points.forEach((p,i) => {
+    if (points.length < 2) { p.v=null; return; }
+    const a=points[Math.max(0,i-1)], b=points[Math.min(points.length-1,i+1)], dt=b.t-a.t;
+    p.v=dt>0 ? (b.y-a.y)/dt : null;
+  });
+}
+function invalidateNavigation() {
+  seekSequence++;
+  if (cancelSeek) cancelSeek();
+  cancelSeek=null; busy=false;
+}
+function resetAnalysis() {
+  invalidateNavigation(); video.pause(); phase=1; calibration=[]; origin=null; points=[]; completed=false; completionReason=""; notice(""); render();
+}
+async function seekTo(target) {
+  if (!ready) return false;
+  invalidateNavigation(); video.pause();
+  const ticket=seekSequence;
+  target=Math.max(0,Math.min(video.duration,target)); busy=true; renderControls();
+  const success=await new Promise(resolve => {
+    let settled=false, timer;
+    const finish=ok => {
+      if (settled) return;
+      settled=true; clearTimeout(timer); video.removeEventListener("seeked",onSeeked); video.removeEventListener("error",onError); resolve(ok);
+    };
+    const onSeeked=()=>finish(true), onError=()=>finish(false);
+    cancelSeek=()=>finish(false);
+    video.addEventListener("seeked",onSeeked); video.addEventListener("error",onError);
+    timer=setTimeout(()=>finish(false),5000);
+    if (Math.abs(video.currentTime-target)<0.00001 && !video.seeking) finish(true);
+    else { try { video.currentTime=target; } catch { finish(false); } }
+  });
+  await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+  if (ticket!==seekSequence) return false;
+  cancelSeek=null; busy=false;
+  if (!success) notice("No se pudo mostrar ese instante. Intenta navegar de nuevo.");
+  render(); return success;
+}
+async function step(direction) {
+  if (!ready || busy) return;
+  const target=video.currentTime+direction/fps();
+  if (target>=video.duration) { notice("Fin del video. Puedes finalizar el rastreo."); return; }
+  await seekTo(Math.max(0,target));
+}
+$("file").addEventListener("change",()=>{
+  const file=$("file").files[0]; if (!file) return;
+  ready=false; resetAnalysis(); if (url) URL.revokeObjectURL(url);
+  url=URL.createObjectURL(file); $("filename").textContent=file.name; $("placeholder").hidden=false;
+  $("placeholder").querySelector("p").textContent="Cargando video…"; video.src=url; video.load(); render();
+});
+video.addEventListener("loadeddata",()=>{
+  if (!video.videoWidth || !Number.isFinite(video.duration) || video.duration<=0) { notice("El video no tiene una duración válida."); return; }
+  ready=true; overlay.width=video.videoWidth; overlay.height=video.videoHeight;
+  $("stage").style.aspectRatio=`${video.videoWidth} / ${video.videoHeight}`;
+  $("scrub").max=video.duration; $("placeholder").hidden=true; render();
+});
+video.addEventListener("error",()=>{
+  ready=false; invalidateNavigation(); notice("No se pudo leer el video. Prueba otro MP4/WebM con un códec compatible con tu navegador.");
+  $("placeholder").hidden=false; $("placeholder").querySelector("p").textContent="Video no disponible"; render();
+});
+$("play").addEventListener("click",async()=>{
+  if (!ready || busy) return;
+  if (!video.paused) video.pause(); else { try { await video.play(); } catch { notice("No fue posible reproducir el video."); } }
+});
+$("back").addEventListener("click",()=>step(-1)); $("next").addEventListener("click",()=>step(1));
+$("scrub").addEventListener("input",()=>seekTo(Number($("scrub").value)));
+$("fps").addEventListener("change",render); $("length").addEventListener("input",render);
+$("half").addEventListener("click",()=>{ $("length").value="0.5"; render(); });
+$("one").addEventListener("click",()=>{ $("length").value="1.0"; render(); });
+$("reset").addEventListener("click",()=>{ if (points.length && !confirm("¿Borrar las marcas y volver a calibrar este video?")) return; resetAnalysis(); });
+$("stage").addEventListener("keydown",event=>{
+  if (!ready) return;
+  if (["ArrowLeft","ArrowRight"," "].includes(event.key)) event.preventDefault();
+  if (event.key==="ArrowLeft") step(-1); if (event.key==="ArrowRight") step(1); if (event.key===" " && !busy) $("play").click();
+});
+["play","pause","ended"].forEach(name=>video.addEventListener(name,renderControls));
+video.addEventListener("timeupdate",()=>{ updateCurrent(); drawOverlay(); });
+video.addEventListener("seeking",renderControls);
+video.addEventListener("seeked",()=>{ updateCurrent(); renderControls(); drawOverlay(); });
+overlay.addEventListener("click",async event=>{
+  if (!ready || busy || video.seeking || completed) return;
+  if (!video.paused) { video.pause(); notice("Video pausado. Haz clic nuevamente para marcar con precisión."); return; }
+  const rect=overlay.getBoundingClientRect();
+  const p={x:(event.clientX-rect.left)*overlay.width/rect.width,y:(event.clientY-rect.top)*overlay.height/rect.height};
+  notice("");
+  if (phase===1) {
+    if (!lengthValid()) { notice("Introduce una longitud real mayor que cero."); return; }
+    if (calibration.length===1 && Math.hypot(p.x-calibration[0].x,p.y-calibration[0].y)<10) { notice("Los extremos deben estar separados al menos 10 píxeles."); return; }
+    calibration.push(p); if (calibration.length===2) phase=2; render(); return;
+  }
+  if (phase===2) {
+    if (!geometry()) { notice("Revisa la longitud de la referencia."); return; }
+    origin={...p,time:video.currentTime};
+    points=[{...p,time:origin.time,frame:frame(origin.time),t:0,y:0,v:null}]; phase=3; render(); await step(1); return;
+  }
+  const time=video.currentTime, previous=points[points.length-1];
+  if (time<=previous.time+0.25/fps() || frame(time)<=previous.frame) { notice("Avanza a un fotograma posterior al último registrado. Para corregirlo, usa Deshacer."); return; }
+  const y=heightAt(p), hadPositiveHeight=points.some(sample=>sample.y>0), descending=y<previous.y;
+  points.push({...p,time,frame:frame(time),t:time-origin.time,y,v:null}); calculateVelocities();
+  if (hadPositiveHeight && descending && y<=0) { completed=true; completionReason="La pelota volvió a cruzar la altura inicial."; video.pause(); render(); return; }
+  render(); await step(1);
+});
+$("finish").addEventListener("click",()=>{ completed=true; completionReason="Rastreo finalizado manualmente."; video.pause(); render(); });
+$("undo").addEventListener("click",async()=>{
+  if (busy) return; notice("");
+  if (phase===1) calibration.pop();
+  else if (phase===2) { calibration.pop(); phase=1; }
+  else if (points.length>1) { completed=false; completionReason=""; const removed=points.pop(); calculateVelocities(); render(); await seekTo(removed.time); return; }
+  else if (origin) { const time=origin.time; points=[]; origin=null; completed=false; phase=2; render(); await seekTo(time); return; }
+  render();
+});
+function renderControls() {
+  const locked=!ready || busy || video.seeking;
+  $("play").disabled=locked; $("play").textContent=video.paused?"Reproducir":"Pausar";
+  $("back").disabled=locked || video.currentTime<=0;
+  $("next").disabled=locked || video.currentTime+1/fps()>=video.duration;
+  $("scrub").disabled=!ready; $("fps").disabled=!!origin || busy; $("length").disabled=!!origin;
+  $("half").disabled=!!origin; $("one").disabled=!!origin; $("reset").disabled=!ready;
+  $("undo").disabled=locked || (!calibration.length && !points.length);
+  $("finish").disabled=locked || phase!==3 || completed; $("export").disabled=points.length===0;
+  overlay.style.cursor=!ready || completed ? "default" : locked ? "wait" : "crosshair";
+}
+function render() {
+  renderControls();
+  for (let i=1;i<=3;i++) $("step"+i).className="step"+(phase===i?" active":phase>i?" done":"");
+  $("hint").textContent=!ready ? "Carga un video para iniciar la calibración." : completed ? `${completionReason} Exporta los datos o deshaz el último punto para continuar.` : phase===1 ? calibration.length===0 ? "1 · Haz clic en la BASE de la regla de referencia." : "1 · Haz clic en el EXTREMO SUPERIOR de la regla. Esa dirección define +Y." : phase===2 ? "2 · Busca el instante de despegue y marca el centro de la pelota. Será y = 0 y t = 0." : "3 · Marca el centro de la pelota. Cada clic registra un punto y avanza un fotograma.";
+  const g=geometry();
+  $("scaleInfo").textContent=g ? `Escala: ${(g.length/g.distance).toPrecision(4)} m/px · +Y sigue la regla.` : "Marca primero la base y luego el extremo superior.";
+  $("count").textContent=`${points.length} punto${points.length===1?"":"s"} registrado${points.length===1?"":"s"}${completed?" · finalizado":""}`;
+  $("tbody").innerHTML=points.map(p=>`<tr data-frame="${p.frame}"><td>${p.frame}</td><td>${fmt(p.t)}</td><td>${fmt(p.y)}</td><td>${fmt(p.v)}</td></tr>`).join("");
+  const last=points[points.length-1];
+  $("last").textContent=last ? `Última marca: t = ${fmt(last.t)} s · y = ${fmt(last.y)} m · vᵧ = ${fmt(last.v)} m/s` : "Todavía no hay marcas.";
+  updateCurrent(); drawOverlay(); drawCharts();
+}
+function updateCurrent() {
+  const time=video.currentTime || 0;
+  $("clock").textContent=`Video ${fmt(time)} s · cuadro ${frame(time)}${busy?" · buscando…":""}`; $("scrub").value=time;
+  const sample=points.find(p=>Math.abs(p.time-time)<0.45/fps());
+  $("mt").textContent=origin?fmt(time-origin.time):"—"; $("my").textContent=sample?fmt(sample.y):"—"; $("mv").textContent=sample?fmt(sample.v):"—";
+  $("metricContext").textContent=!origin?"Selecciona el origen para comenzar.":sample?"Datos del fotograma actual.":"Fotograma sin marca: posición y velocidad aún no medidas.";
+  for (const row of $("tbody").rows) row.classList.toggle("current",!!sample && Number(row.dataset.frame)===sample.frame);
+}
+function drawOverlay() {
+  ctx.clearRect(0,0,overlay.width,overlay.height); if (!ready) return;
+  const scale=overlay.width/Math.max(1,overlay.getBoundingClientRect().width);
+  ctx.lineWidth=2*scale; ctx.font=`bold ${12*scale}px system-ui`; ctx.lineJoin="round";
+  function line(a,b,color,dashed=false) { ctx.strokeStyle=color; ctx.setLineDash(dashed?[6*scale,5*scale]:[]); ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke(); ctx.setLineDash([]); }
+  function dot(p,color,radius=4) { ctx.beginPath(); ctx.arc(p.x,p.y,radius*scale,0,Math.PI*2); ctx.fillStyle=color; ctx.fill(); ctx.strokeStyle="#07101e"; ctx.lineWidth=1.5*scale; ctx.stroke(); ctx.lineWidth=2*scale; }
+  function label(text,p,color) { ctx.strokeStyle="#07101e"; ctx.lineWidth=4*scale; ctx.strokeText(text,p.x+9*scale,p.y-9*scale); ctx.fillStyle=color; ctx.fillText(text,p.x+9*scale,p.y-9*scale); ctx.lineWidth=2*scale; }
+  if (calibration.length) { dot(calibration[0],"#ffd166"); label("Base",calibration[0],"#ffd166"); }
+  const g=geometry();
+  if (g) {
+    const [a,b]=calibration; line(a,b,"#ffd166"); dot(b,"#ffd166"); label("+Y",b,"#ffd166");
+    const ux=g.dx/g.distance, uy=g.dy/g.distance, arrow=12*scale;
+    line(b,{x:b.x-ux*arrow-uy*arrow/2,y:b.y-uy*arrow+ux*arrow/2},"#ffd166");
+    line(b,{x:b.x-ux*arrow+uy*arrow/2,y:b.y-uy*arrow-ux*arrow/2},"#ffd166");
+    if (origin) { const extent=Math.hypot(overlay.width,overlay.height); line({x:origin.x-uy*extent,y:origin.y+ux*extent},{x:origin.x+uy*extent,y:origin.y-ux*extent},"#ffffff88",true); label("y = 0",origin,"#ffffff"); }
+  }
+  if (points.length) {
+    ctx.strokeStyle="#63e0b3"; ctx.beginPath(); points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)); ctx.stroke(); points.forEach(p=>dot(p,"#63e0b3",3));
+    const current=points.find(p=>Math.abs(p.time-video.currentTime)<0.45/fps());
+    if (current) { ctx.beginPath(); ctx.arc(current.x,current.y,9*scale,0,Math.PI*2); ctx.strokeStyle="#ffffff"; ctx.stroke(); }
+  }
+}
+function plot(canvas,samples,color,unit,reference=null) {
+  const rect=canvas.getBoundingClientRect(), dpr=window.devicePixelRatio || 1;
+  canvas.width=Math.max(1,Math.round(rect.width*dpr)); canvas.height=Math.max(1,Math.round(rect.height*dpr));
+  const c=canvas.getContext("2d"); c.setTransform(dpr,0,0,dpr,0,0);
+  const w=rect.width,h=rect.height,left=58,right=18,top=18,bottom=34,pw=w-left-right,ph=h-top-bottom;
+  if (pw<=0) return;
+  let xmax=Math.max(0.1,...samples.map(p=>p.t)), ymin=Math.min(0,...samples.map(p=>p.value)), ymax=Math.max(0,...samples.map(p=>p.value));
+  if (reference && samples.length) { ymin=Math.min(ymin,reference(0),reference(xmax)); ymax=Math.max(ymax,reference(0),reference(xmax)); }
+  const span=ymax-ymin || 1; ymin-=span*0.12; ymax+=span*0.12;
+  const X=t=>left+t/xmax*pw,Y=y=>top+(ymax-y)/(ymax-ymin)*ph,tick=n=>Math.abs(n)>=1000?n.toExponential(1):n.toFixed(2);
+  c.font="11px system-ui";
+  for (let i=0;i<=4;i++) {
+    const t=xmax*i/4,y=ymin+(ymax-ymin)*i/4;
+    c.strokeStyle="#28354a"; c.lineWidth=1; c.beginPath(); c.moveTo(X(t),top); c.lineTo(X(t),h-bottom); c.stroke();
+    c.beginPath(); c.moveTo(left,Y(y)); c.lineTo(w-right,Y(y)); c.stroke();
+    c.fillStyle="#9fadc4"; c.textAlign="center"; c.fillText(t.toFixed(2),X(t),h-15); c.textAlign="right"; c.fillText(tick(y),left-8,Y(y)+4);
+  }
+  c.strokeStyle="#63738a"; c.beginPath(); c.moveTo(left,Y(0)); c.lineTo(w-right,Y(0)); c.stroke();
+  c.fillStyle="#9fadc4"; c.textAlign="right"; c.fillText("t (s)",w-right,h-1); c.textAlign="left"; c.fillText(unit,5,12);
+  if (reference && samples.length) { c.setLineDash([4,4]); c.strokeStyle="#ffd166"; c.lineWidth=1.5; c.beginPath(); c.moveTo(X(0),Y(reference(0))); c.lineTo(X(xmax),Y(reference(xmax))); c.stroke(); c.setLineDash([]); }
+  c.strokeStyle=color; c.fillStyle=color; c.lineWidth=2; c.beginPath();
+  samples.forEach((p,i)=>i?c.lineTo(X(p.t),Y(p.value)):c.moveTo(X(p.t),Y(p.value))); c.stroke();
+  samples.forEach(p=>{ c.beginPath(); c.arc(X(p.t),Y(p.value),3,0,2*Math.PI); c.fill(); });
+  if (!samples.length) { c.fillStyle="#9fadc4"; c.textAlign="center"; c.fillText("Las marcas aparecerán aquí",left+pw/2,top+ph/2); }
+}
+function drawCharts() {
+  const positions=points.map(p=>({t:p.t,value:p.y})), velocities=points.filter(p=>Number.isFinite(p.v)).map(p=>({t:p.t,value:p.v}));
+  const intercept=velocities.length?velocities.reduce((sum,p)=>sum+p.value+9.8*p.t,0)/velocities.length:null;
+  plot($("positionChart"),positions,"#63e0b3","y (m)"); plot($("velocityChart"),velocities,"#77b7ff","vᵧ (m/s)",intercept===null?null:t=>intercept-9.8*t);
+  let description="La pendiente de vᵧ(t) permite estimar la aceleración.";
+  if (velocities.length) description="Línea amarilla: referencia con pendiente −9.8 m/s²; intercepto ajustado a tus datos.";
+  if (velocities.length>=3) {
+    const meanT=velocities.reduce((s,p)=>s+p.t,0)/velocities.length,meanV=velocities.reduce((s,p)=>s+p.value,0)/velocities.length;
+    const denominator=velocities.reduce((s,p)=>s+(p.t-meanT)**2,0);
+    if (denominator>0) { const acceleration=velocities.reduce((s,p)=>s+(p.t-meanT)*(p.value-meanV),0)/denominator; description+=` Pendiente experimental: ${fmt(acceleration,2)} m/s².`; }
+  }
+  $("fit").textContent=description;
+}
+$("export").addEventListener("click",()=>{
+  if (!points.length) return;
+  const rows=[["Fotograma","t (s)","y (m)","vy (m/s)"],...points.map(p=>[p.frame,p.t.toFixed(6),p.y.toFixed(6),Number.isFinite(p.v)?p.v.toFixed(6):""])];
+  const csv="\uFEFF"+rows.map(row=>row.join(",")).join("\r\n"),blob=new Blob([csv],{type:"text/csv;charset=utf-8"}),downloadURL=URL.createObjectURL(blob),a=document.createElement("a");
+  a.href=downloadURL; a.download="tiro_vertical.csv"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(downloadURL),10000);
+  notice("CSV exportado. En Excel, si es necesario, importa usando coma como separador y punto decimal.");
+});
+const resizeObserver=new ResizeObserver(()=>{ drawOverlay(); drawCharts(); });
+resizeObserver.observe($("stage")); resizeObserver.observe($("positionChart")); resizeObserver.observe($("velocityChart"));
+window.addEventListener("beforeunload",()=>{ if (url) URL.revokeObjectURL(url); });
+render();
+</script>
+<script>
+// Detecta automáticamente los FPS observando los tiempos reales de los cuadros.
+(() => {
+  const selector = document.getElementById("fps");
+  const videoElement = document.getElementById("video");
+  const message = document.getElementById("notice");
+  const standards = [24, 25, 29.97, 30, 50, 59.94, 60];
+  if (!selector.querySelector('option[value="50"]')) {
+    const option = document.createElement("option");
+    option.value = "50";
+    option.textContent = "50 fps";
+    selector.appendChild(option);
+  }
+  const status = document.createElement("span");
+  status.textContent = " · automático";
+  selector.insertAdjacentElement("afterend", status);
+  async function detectFrameRate() {
+    if (!("requestVideoFrameCallback" in HTMLVideoElement.prototype) ||
+        !Number.isFinite(videoElement.duration) || videoElement.duration < 0.5) {
+      status.textContent = " · selección manual";
+      return;
+    }
+    status.textContent = " · midiendo…";
+    message.textContent = "Midiendo automáticamente los FPS del video…";
+    selector.disabled = true;
+    videoElement.pause();
+    try { videoElement.currentTime = 0; } catch {}
+    const times = [];
+    await new Promise(resolve => {
+      let finished = false, callbackId = 0;
+      const finish = () => {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timer);
+        if (callbackId && videoElement.cancelVideoFrameCallback) videoElement.cancelVideoFrameCallback(callbackId);
+        videoElement.pause();
+        resolve();
+      };
+      const sample = (now, metadata) => {
+        times.push(metadata.mediaTime);
+        if (times.length >= 36 || (times.length > 2 && times[times.length - 1] - times[0] >= 1.2)) finish();
+        else callbackId = videoElement.requestVideoFrameCallback(sample);
+      };
+      const timer = setTimeout(finish, 4000);
+      callbackId = videoElement.requestVideoFrameCallback(sample);
+      videoElement.play().catch(finish);
+    });
+    const intervals = [];
+    for (let i = 1; i < times.length; i++) {
+      const interval = times[i] - times[i - 1];
+      if (interval > 0.004 && interval < 0.15) intervals.push(interval);
+    }
+    if (intervals.length >= 5) {
+      const ordered = [...intervals].sort((a, b) => a - b);
+      const median = ordered[Math.floor(ordered.length / 2)];
+      const measured = 1 / median;
+      const closest = standards.reduce((a, b) => Math.abs(b - measured) < Math.abs(a - measured) ? b : a);
+      const deviations = intervals.map(value => Math.abs(value - median) / median).sort((a, b) => a - b);
+      const variable = deviations[Math.floor((deviations.length - 1) * 0.9)] > 0.08;
+      if (Math.abs(closest - measured) / closest < 0.08) selector.value = String(closest);
+      status.textContent = ` · detectado: ${measured.toFixed(2)} fps${variable ? " (variable)" : ""}`;
+      message.textContent = `FPS medidos: ${measured.toFixed(2)}. Navegación ajustada a ${selector.value} fps.`;
+    } else {
+      status.textContent = " · selección manual";
+      message.textContent = "El navegador no pudo medir los FPS. Selecciona manualmente la tasa del video.";
+    }
+    try { videoElement.currentTime = 0; } catch {}
+    selector.disabled = false;
+  }
+  videoElement.addEventListener("loadeddata", detectFrameRate);
+  selector.addEventListener("change", () => { status.textContent = " · selección manual"; });
+})();
+</script>
+</body>
+</html>
