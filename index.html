@@ -37,6 +37,15 @@ button,.file-button{border:1px solid var(--border);border-radius:9px;padding:10p
 const $ = id => document.getElementById(id);
 const video = $("video"), overlay = $("overlay"), ctx = overlay.getContext("2d");
 let url = null, ready = false, busy = false, phase = 1, calibration = [], origin = null, points = [], completed = false, completionReason = "", seekSequence = 0, cancelSeek = null;
+let displayedMediaTime = null;
+const actualVideoTime = () => Number.isFinite(displayedMediaTime) ? displayedMediaTime : video.currentTime;
+if ("requestVideoFrameCallback" in HTMLVideoElement.prototype) {
+  const captureDisplayedFrame = (now, metadata) => {
+    displayedMediaTime = metadata.mediaTime;
+    video.requestVideoFrameCallback(captureDisplayedFrame);
+  };
+  video.requestVideoFrameCallback(captureDisplayedFrame);
+}
 const fps = () => Number($("fps").value);
 const frame = t => Math.round(t * fps());
 const fmt = (n, digits = 3) => Number.isFinite(n) ? n.toFixed(digits) : "—";
@@ -92,13 +101,13 @@ async function seekTo(target) {
 }
 async function step(direction) {
   if (!ready || busy) return;
-  const target=video.currentTime+direction/fps();
+  const target=actualVideoTime()+direction/fps();
   if (target>=video.duration) { notice("Fin del video. Puedes finalizar el rastreo."); return; }
   await seekTo(Math.max(0,target));
 }
 $("file").addEventListener("change",()=>{
   const file=$("file").files[0]; if (!file) return;
-  ready=false; resetAnalysis(); if (url) URL.revokeObjectURL(url);
+  ready=false; displayedMediaTime=null; resetAnalysis(); if (url) URL.revokeObjectURL(url);
   url=URL.createObjectURL(file); $("filename").textContent=file.name; $("placeholder").hidden=false;
   $("placeholder").querySelector("p").textContent="Cargando video…"; video.src=url; video.load(); render();
 });
@@ -144,10 +153,10 @@ overlay.addEventListener("click",async event=>{
   }
   if (phase===2) {
     if (!geometry()) { notice("Revisa la longitud de la referencia."); return; }
-    origin={...p,time:video.currentTime};
+    origin={...p,time:actualVideoTime()};
     points=[{...p,time:origin.time,frame:frame(origin.time),t:0,y:0,v:null}]; phase=3; render(); await step(1); return;
   }
-  const time=video.currentTime, previous=points[points.length-1];
+  const time=actualVideoTime(), previous=points[points.length-1];
   if (time<=previous.time+0.25/fps() || frame(time)<=previous.frame) { notice("Avanza a un fotograma posterior al último registrado. Para corregirlo, usa Deshacer."); return; }
   const y=heightAt(p), hadPositiveHeight=points.some(sample=>sample.y>0), descending=y<previous.y;
   points.push({...p,time,frame:frame(time),t:time-origin.time,y,v:null}); calculateVelocities();
@@ -187,7 +196,7 @@ function render() {
   updateCurrent(); drawOverlay(); drawCharts();
 }
 function updateCurrent() {
-  const time=video.currentTime || 0;
+  const time=actualVideoTime() || 0;
   $("clock").textContent=`Video ${fmt(time)} s · cuadro ${frame(time)}${busy?" · buscando…":""}`; $("scrub").value=time;
   const sample=points.find(p=>Math.abs(p.time-time)<0.45/fps());
   $("mt").textContent=origin?fmt(time-origin.time):"—"; $("my").textContent=sample?fmt(sample.y):"—"; $("mv").textContent=sample?fmt(sample.v):"—";
@@ -212,7 +221,7 @@ function drawOverlay() {
   }
   if (points.length) {
     ctx.strokeStyle="#63e0b3"; ctx.beginPath(); points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)); ctx.stroke(); points.forEach(p=>dot(p,"#63e0b3",3));
-    const current=points.find(p=>Math.abs(p.time-video.currentTime)<0.45/fps());
+    const current=points.find(p=>Math.abs(p.time-actualVideoTime())<0.45/fps());
     if (current) { ctx.beginPath(); ctx.arc(current.x,current.y,9*scale,0,Math.PI*2); ctx.strokeStyle="#ffffff"; ctx.stroke(); }
   }
 }
